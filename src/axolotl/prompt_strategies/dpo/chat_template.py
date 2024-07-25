@@ -9,7 +9,7 @@ def default(
     cfg, dataset_idx=0, **kwargs
 ):  # pylint: disable=possibly-unused-variable,unused-argument
     ds_cfg = cfg["datasets"][dataset_idx]
-    chat_template_str = chat_templates(cfg.chat_template)
+    chat_template_str = chat_templates(cfg)
 
     field_messages = ds_cfg.get("field_messages", "messages")
     field_chosen = ds_cfg.get("field_chosen", "chosen")

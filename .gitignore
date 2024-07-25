@@ -3,6 +3,7 @@ configs
 last_run_prepared/
 .vscode
 _site/
+*.swp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

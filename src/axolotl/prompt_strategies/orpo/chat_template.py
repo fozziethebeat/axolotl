@@ -1,4 +1,5 @@
 """chatml prompt tokenization strategy for ORPO"""
+
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from pydantic import BaseModel
@@ -29,14 +30,16 @@ def load(
     chatml transforms for datasets with system, input, chosen, rejected
     """
 
-    chat_template = chat_templates("chatml")
+    default_choice = "chatml"
     if ds_cfg and "chat_template" in ds_cfg:
-        chat_template = ds_cfg["chat_template"]
-        try:
-            chat_template = chat_templates(chat_template)
-        except ValueError:
-            pass
-    tokenizer.chat_template = chat_template
+        default_choice = ds_cfg["chat_template"]
+    chat_template = chat_templates(cfg, default_choice=default_choice)
+    if chat_template is None:
+        assert (
+            tokenizer.chat_template is not None
+        ), "Tokenizer must have a chat template if none is specified"
+    else:
+        tokenizer.chat_template = chat_template
 
     return ORPOTokenizingStrategy(
         ORPOPrompter(chat_template, tokenizer),
@@ -248,7 +251,7 @@ class ORPOPrompter(Prompter):
 def argilla(cfg, **kwargs):  # pylint: disable=possibly-unused-variable,unused-argument
     dataset_parser = ORPODatasetParsingStrategy()
 
-    chat_template_str = chat_templates(cfg.chat_template)
+    chat_template_str = chat_templates(cfg)
 
     def transform_fn(sample, tokenizer=None):
         res = {}

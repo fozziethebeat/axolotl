@@ -38,7 +38,12 @@ class ChatTemplatePrompter(Prompter):
         self.message_field_role = message_field_role
         self.message_field_content = message_field_content
         self.tokenizer = tokenizer
-        self.chat_template = chat_template
+        if chat_template is None:
+            assert (
+                self.tokenizer.chat_template is not None
+            ), "Tokenizer must have a chat template if one is not specified"
+        else:
+            self.tokenizer.chat_template = chat_template
         self.max_length = max_length
         self.drop_system_message = drop_system_message
 
@@ -59,7 +64,6 @@ class ChatTemplatePrompter(Prompter):
             truncation=True,
             max_length=self.max_length,
             add_generation_prompt=add_generation_prompt,
-            chat_template=self.chat_template,
         )
 
 
@@ -102,9 +106,6 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
 
 
 def load(tokenizer, cfg, ds_cfg: Optional[Dict[str, Any]] = None):
-    chat_template = (
-        ds_cfg["chat_template"] if ds_cfg and "chat_template" in ds_cfg else "chatml"
-    )
     message_field_role = (
         ds_cfg["message_field_role"]
         if ds_cfg and "message_field_role" in ds_cfg
@@ -122,10 +123,13 @@ def load(tokenizer, cfg, ds_cfg: Optional[Dict[str, Any]] = None):
         else False
     )
 
+    default_choice = "chatml"
+    if ds_cfg and "chat_template" in ds_cfg:
+        default_choice = ds_cfg["chat_template"]
     strategy = ChatTemplateStrategy(
         ChatTemplatePrompter(
             tokenizer,
-            chat_templates(chat_template),
+            chat_templates(cfg, default_choice=default_choice),
             message_field_role=message_field_role,
             message_field_content=message_field_content,
             roles=roles,

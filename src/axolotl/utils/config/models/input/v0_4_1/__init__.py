@@ -186,6 +186,12 @@ class ChatTemplate(str, Enum):
     llama3 = "llama3"  # pylint: disable=invalid-name
     phi_3 = "phi_3"  # pylint: disable=invalid-name
 
+    default = "default"  # pylint: disable=invalid-name
+    """When set, uses the tokenizer's default chat template."""
+
+    jinja2 = "jinja2"  # pylint: disable=invalid-name
+    """Takes in a custom jinja2 template string for the chat template."""
+
 
 class LoftQConfig(BaseModel):
     """LoftQ configuration subset"""
@@ -659,6 +665,7 @@ class AxolotlInputConfig(
     low_cpu_mem_usage: Optional[bool] = None
 
     chat_template: Optional[ChatTemplate] = None
+    chat_template_jinja: Optional[str] = None
     default_system_message: Optional[str] = None
 
     fix_untrained_tokens: Optional[bool] = None

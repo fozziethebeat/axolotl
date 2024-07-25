@@ -133,7 +133,7 @@ class TestAssistantChatTemplateLlama3:
         strategy = ChatTemplateStrategy(
             ChatTemplatePrompter(
                 llama3_tokenizer,
-                chat_templates("llama3"),
+                chat_templates(DictDefault({"chat_template": "llama3"})),
                 message_field_role="role",
                 message_field_content="content",
                 roles={
@@ -163,6 +163,49 @@ class TestAssistantChatTemplateLlama3:
         ]
         # fmt: on
 
+    def test_user_jinja_template(self, llama3_tokenizer, assistant_dataset):
+        # pylint: disable=duplicate-code
+        strategy = ChatTemplateStrategy(
+            ChatTemplatePrompter(
+                llama3_tokenizer,
+                chat_templates(
+                    DictDefault(
+                        {
+                            "chat_template": "jinja2",
+                            "chat_template_jinja": "TEST{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}",
+                        }
+                    )
+                ),
+                message_field_role="role",
+                message_field_content="content",
+                roles={
+                    "user": ["user"],
+                    "assistant": ["assistant"],
+                    "system": ["system"],
+                },
+            ),
+            llama3_tokenizer,
+            False,
+            512,
+        )
+        strategy.messages = "messages"
+        res = strategy.tokenize_prompt(assistant_dataset[0])
+        input_ids = res["input_ids"]
+        # fmt: off
+        assert input_ids == [
+            10238,  # TEST
+            128000,  # bos
+            128006, 882, 128007,  # user header
+            271, 15339, 128009,  # user prompt eot
+            128006, 78191, 128007,  # assistant header
+            271, 15339, 128009,   # assistant response eot
+            128006, 882, 128007,
+            271, 19045, 29474, 128009,
+            128006, 78191, 128007,
+            271, 19045, 29474, 128009,
+        ]
+        # fmt: on
+
 
 class TestSharegptChatTemplateLlama3:
     """
@@ -172,7 +215,10 @@ class TestSharegptChatTemplateLlama3:
     def test_llama3(self, llama3_tokenizer, sharegpt_dataset):
         # pylint: disable=duplicate-code
         strategy = ChatTemplateStrategy(
-            ChatTemplatePrompter(llama3_tokenizer, chat_templates("llama3")),
+            ChatTemplatePrompter(
+                llama3_tokenizer,
+                chat_templates(DictDefault({"chat_template": "llama3"})),
+            ),
             llama3_tokenizer,
             False,
             512,

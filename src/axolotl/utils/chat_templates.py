@@ -3,8 +3,12 @@ This module provides functionality for selecting chat templates based on user ch
 These templates are used for formatting messages in a conversation.
 """
 
+from typing import Optional
 
-def chat_templates(user_choice: str):
+from axolotl.utils.dict import DictDefault
+
+
+def chat_templates(cfg: DictDefault, default_choice: Optional[str] = None):
     """
     Finds the correct chat_template for the tokenizer_config.
 
@@ -18,6 +22,19 @@ def chat_templates(user_choice: str):
         ValueError: If the user_choice is not found in the templates.
     """
 
+    if not cfg.chat_template and not default_choice:
+        raise ValueError("Must call `chat_template` with a template name")
+
+    # Assume the caller will validate that the tokenizer has a template.
+    if cfg.chat_template == "default":
+        return None
+    if cfg.chat_template == "jinja2":
+        assert (
+            cfg.chat_template_jinja is not None
+        ), "`chat_template_jinja` must not be none when specifying a `jinja2` template."
+        return cfg.chat_template_jinja
+
+    user_choice = cfg.chat_template or default_choice
     templates = {
         "alpaca": "{% for message in messages %}{% if message['role'] == 'user' %}{{ '### Instruction: ' + message['content'] + '\n\n' }}{% elif message['role'] == 'assistant' %}{{ '### Response: ' + message['content'] + eos_token}}{% endif %}{% endfor %}",
         "inst": "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '[INST] ' + message['content'] + ' [/INST]' }}{% elif message['role'] == 'assistant' %}{{ message['content'] + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}",  # I don't know what this one is called. Used by Mistral/Mixtral.

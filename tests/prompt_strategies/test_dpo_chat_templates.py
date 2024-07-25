@@ -116,6 +116,32 @@ class TestAssistantDPOChatTemplateLlama3:
         assert result["chosen"] == "goodbye<|eot_id|>"
         assert result["rejected"] == "party on<|eot_id|>"
 
+    def test_jina_defaults(self, llama3_tokenizer, assistant_dataset):
+        # pylint: disable=duplicate-code
+        transform_fn = default(
+            DictDefault(
+                {
+                    "chat_template": "jinja2",
+                    "chat_template_jinja": "TEST{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}",
+                    "datasets": [
+                        {
+                            "chat_template": "jinja2",
+                        }
+                    ],
+                }
+            )
+        )
+        result = transform_fn(assistant_dataset[0], tokenizer=llama3_tokenizer)
+        assert result["prompt"] == (
+            "TEST<|begin_of_text|>"
+            + "<|start_header_id|>user<|end_header_id|>\n\nhello<|eot_id|>"
+            + "<|start_header_id|>assistant<|end_header_id|>\n\nhello<|eot_id|>"
+            + "<|start_header_id|>user<|end_header_id|>\n\ngoodbye<|eot_id|>"
+            + "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        )
+        assert result["chosen"] == "goodbye<|eot_id|>"
+        assert result["rejected"] == "party on<|eot_id|>"
+
     def test_llama3_configured(self, llama3_tokenizer, custom_assistant_dataset):
         # pylint: disable=duplicate-code
         transform_fn = default(
